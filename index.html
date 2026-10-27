@@ -7,6 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#070a12">
+  <meta name="apple-mobile-web-app-title" content="Oathfire">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="ikon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="ikon-192.png">
   <title>Oathfire · Yemin Ateşi</title>
   <style>
     html, body { margin: 0; height: 100%; background: #070a12; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -23,6 +27,11 @@
     #dolu { height: 100%; width: 0; background: linear-gradient(90deg, #3d6fd8, #9cc4ff); box-shadow: 0 0 10px #4f8cff88; transition: width .2s; }
     #durum { margin: 0; font-size: 14px; color: #9aa8c0; }
     #ipucu { margin: 0; max-width: 560px; font-size: 13px; color: #7d8aa3; }
+    /* iPhone Safari: ana ekrana ekleme ipucu (uygulama gibi açılınca görünmez) */
+    #ekle { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 6; display: none;
+      max-width: min(92vw, 520px); padding: 10px 34px 10px 14px; border-radius: 12px; border: 1px solid #5d6f8f; background: #101828f2;
+      color: #d8e2f2; font: 14px/1.4 Georgia, serif; box-shadow: 0 6px 24px #000a; }
+    #ekleKapat { position: absolute; right: 10px; top: 8px; cursor: pointer; color: #9aa8c0; }
     #tam {
       position: fixed; left: 50%; transform: translateX(-50%); bottom: 4px; z-index: 5; display: none; padding: 6px 10px; opacity: .85; border-radius: 10px; border: 1px solid #5d6f8f;
       background: #101828e6; color: #d8e2f2; font: 600 14px Georgia, serif;
@@ -39,6 +48,7 @@
     <p id="ipucu">İpucu: telefonda yatay tut. Haritayı parmağınla sürükle, iki parmakla yakınlaştır.</p>
   </div>
   <button id="tam">Tam ekran</button>
+  <div id="ekle"><b>Uygulama gibi oyna:</b> alttaki <b>Paylaş</b> simgesine dokun, sonra <b>Ana Ekrana Ekle</b>. Oathfire ikonuyla, tam ekran açılır.<span id="ekleKapat">✕</span></div>
   <script>
     var ipuclari = [
       "İpucu: telefonda yatay tut. Haritayı parmağınla sürükle, iki parmakla yakınlaştır.",
@@ -58,10 +68,22 @@
       streamingAssetsUrl: "StreamingAssets",
       companyName: "Otag",
       productName: "Oathfire · Yemin Ateşi",
-      productVersion: "0.0.044",
+      productVersion: "0.0.045",
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, mobil ? 2 : 2),
     };
     var tam = document.getElementById("tam");
+    // ana ekrandan (uygulama gibi) açıldı mı: tam ekran düğmesi ve ekleme ipucu gerekmez
+    var uygulama = window.navigator.standalone === true || (window.matchMedia && window.matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches);
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (ios && !uygulama) {
+      var ekle = document.getElementById("ekle");
+      var kapali = false; try { kapali = localStorage.getItem("ekleKapali") === "1"; } catch (e) {}
+      if (!kapali) {
+        ekle.style.display = "block";
+        document.getElementById("ekleKapat").onclick = function () { ekle.style.display = "none"; try { localStorage.setItem("ekleKapali", "1"); } catch (e) {} };
+        setTimeout(function () { ekle.style.display = "none"; }, 20000);
+      }
+    }
     function tamEkran() {
       var el = document.documentElement;
       var f = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -69,7 +91,7 @@
     }
     tam.onclick = tamEkran;
     // telefonda ilk dokunuşta tam ekrana geçmeyi dene
-    if (mobil) document.addEventListener("touchend", function ilk() { tamEkran(); document.removeEventListener("touchend", ilk); }, { once: true });
+    if (mobil && !uygulama) document.addEventListener("touchend", function ilk() { tamEkran(); document.removeEventListener("touchend", ilk); }, { once: true });
     var s = document.createElement("script");
     s.src = buildUrl + "/OtagZindan_Web.loader.js";
     s.onload = function () {
@@ -80,7 +102,7 @@
         window.unityInstance = u;
         var y = document.getElementById("yukleme");
         y.style.opacity = 0; setTimeout(function () { y.remove(); }, 700);
-        if (document.fullscreenEnabled || document.webkitFullscreenEnabled) tam.style.display = "block";
+        if (!uygulama && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) tam.style.display = "block";
         document.addEventListener("fullscreenchange", function () { tam.style.display = document.fullscreenElement ? "none" : "block"; });
         // birkaç saniye sonra soluklaş: oyunun alt menüsünü kapatmasın
         setTimeout(function () { tam.style.transition = "opacity .6s"; tam.style.opacity = ".25"; }, 7000);
